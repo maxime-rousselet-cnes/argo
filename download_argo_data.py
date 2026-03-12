@@ -6,6 +6,7 @@ import os
 import time
 
 import fsspec
+from fsspec.implementations.http import HTTPFileSystem
 
 BASE_URL = "https://www.ncei.noaa.gov/data/oceans/argo/gadr/data"
 BASINS = ["pacific", "atlantic", "indian"]
@@ -14,10 +15,13 @@ YEARS_TO_DOWNLOAD = range(2000, 2021)
 MAX_RETRIES = 5
 RETRY_DELAY = 5
 
-fs = fsspec.filesystem("https")
+fs: HTTPFileSystem = fsspec.filesystem("https")
 
 
-def safe_download(remote_path, local_path):
+def safe_download(remote_path: str, local_path: str) -> None:
+    """
+    Downloads an ARGO profile file with time buffers and retries in case of failure.
+    """
 
     retries = 0
 
@@ -25,24 +29,22 @@ def safe_download(remote_path, local_path):
 
         try:
 
-            fs.get(remote_path, local_path)
-            return True
+            fs.get(rpath=remote_path, lpath=local_path)
+            return
 
-        except Exception as e:
+        except (OSError, IOError) as e:
 
             retries += 1
             print(f"Error downloading {remote_path}: {e}")
 
-            if os.path.exists(local_path):
+            if os.path.exists(path=local_path):
 
-                os.remove(local_path)
+                os.remove(path=local_path)
 
             print(f"Retrying ({retries}/{MAX_RETRIES}) after {RETRY_DELAY}s...")
-            time.sleep(RETRY_DELAY)
+            time.sleep(seconds=RETRY_DELAY)
 
     print(f"Failed to download {remote_path} after {MAX_RETRIES} retries.")
-
-    return False
 
 
 if __name__ == "__main__":
@@ -54,26 +56,26 @@ if __name__ == "__main__":
 
         try:
 
-            all_files: list[str] = fs.find(remote_root)
+            all_files: list[str] = fs.find(path=remote_root)
 
-        except Exception as e:
+        except OSError as e:
 
             print(f"Could not list {remote_root}: {e}")
             continue
 
         for path in all_files:
 
-            if not path.endswith(".nc"):
+            if not path.endswith(suffix=".nc"):
 
                 continue
 
-            parts = path.split("/")
+            parts = path.split(sep="/")
 
             try:
 
                 year = int(parts[-3])
 
-            except:
+            except (ValueError, IndexError) as e:
 
                 continue
 
@@ -81,14 +83,14 @@ if __name__ == "__main__":
 
                 continue
 
-            relative_path = path.replace(BASE_URL + "/", "")
-            local_path = os.path.join(LOCAL_ROOT, relative_path)
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            relative_path = path.replace(old=BASE_URL + "/", new="")
+            redefined_local_path = os.path.join(LOCAL_ROOT, relative_path)
+            os.makedirs(name=os.path.dirname(p=redefined_local_path), exist_ok=True)
 
-            if os.path.exists(local_path):
+            if os.path.exists(path=redefined_local_path):
 
                 print(f"Already exists: {relative_path}")
                 continue
 
             print(f"Downloading {relative_path} ...")
-            safe_download(path, local_path)
+            safe_download(remote_path=path, local_path=redefined_local_path)
