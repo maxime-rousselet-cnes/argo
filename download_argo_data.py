@@ -6,6 +6,7 @@ import os
 import time
 
 import fsspec
+from aiohttp.client_exceptions import ClientResponseError
 from fsspec.implementations.http import HTTPFileSystem
 
 BASE_URL = "https://www.ncei.noaa.gov/data/oceans/argo/gadr/data"
@@ -32,7 +33,7 @@ def safe_download(remote_path: str, local_path: str) -> None:
             fs.get(rpath=remote_path, lpath=local_path)
             return
 
-        except (OSError, IOError) as e:
+        except (OSError, IOError, ClientResponseError) as e:  # Transient errors worth retrying.
 
             retries += 1
             print(f"Error downloading {remote_path}: {e}")
@@ -42,7 +43,7 @@ def safe_download(remote_path: str, local_path: str) -> None:
                 os.remove(path=local_path)
 
             print(f"Retrying ({retries}/{MAX_RETRIES}) after {RETRY_DELAY}s...")
-            time.sleep(seconds=RETRY_DELAY)
+            time.sleep(RETRY_DELAY)
 
     print(f"Failed to download {remote_path} after {MAX_RETRIES} retries.")
 
