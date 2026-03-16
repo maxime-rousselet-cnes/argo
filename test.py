@@ -4,6 +4,8 @@ To test the package. To be called by pytest test.py.
 
 from argo import BASE_URL, BASINS, FS
 
+TEST_FOLDER = "/2000/01"
+
 
 def test_find_argo_files():
     """
@@ -14,7 +16,7 @@ def test_find_argo_files():
 
     try:
 
-        FS.find(path=remote_root + "/2000/01")
+        FS.find(path=remote_root + TEST_FOLDER)
 
     except OSError:
 
