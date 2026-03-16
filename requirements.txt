@@ -7,4 +7,5 @@ matplotlib
 pylint
 pytest
 requests
+setuptools
 xarray
